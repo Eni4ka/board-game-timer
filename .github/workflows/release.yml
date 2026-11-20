@@ -15,14 +15,13 @@ jobs:
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
       - run: npm run cap:sync
         env:
-          VITE_ADMOB_BANNER_ID: ${{ secrets.ADMOB_BANNER_ID }}
+          VITE_ADMOB_BANNER_ID: ca-app-pub-6923300523417935/3412305311
       - run: cd android && ./gradlew bundleRelease
         env:
           KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
           VERSION_CODE: ${{ github.run_number }}
       - uses: actions/upload-artifact@v4
         with:
