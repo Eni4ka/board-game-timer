@@ -8,3 +8,5 @@ class FakeAudio {
   pause() { this.paused = true; }
 }
 (globalThis as unknown as { Audio: unknown }).Audio = FakeAudio;
+
+Object.defineProperty(navigator, 'language', { value: 'ru-RU', configurable: true });

@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {t} from '../i18n';
 import type {Player} from '../types';
 
 type SettingsProps = {
@@ -38,7 +39,7 @@ const Settings = ({
         if (localPlayers.length >= 6) return;
         setLocalPlayers([
             ...localPlayers,
-            {name: `Игрок ${localPlayers.length + 1}`, time: 0, color: getRandomColor()},
+            {name: `${t('player')} ${localPlayers.length + 1}`, time: 0, color: getRandomColor()},
         ]);
     };
 
@@ -64,19 +65,19 @@ const Settings = ({
 
     return (
         <div className="settings-panel">
-            <h2>Настройки игроков</h2>
+            <h2>{t('settings')}</h2>
             <div className="settings-mode">
                 <label>
-                    Режим:
+                    {t('mode')}
                     <select value={mode} onChange={(e) => setMode(e.target.value as 'stopwatch' | 'timer')}>
-                        <option value="stopwatch">Секундомер</option>
-                        <option value="timer">Таймер</option>
+                        <option value="stopwatch">{t('stopwatch')}</option>
+                        <option value="timer">{t('timer')}</option>
                     </select>
                 </label>
 
                 {mode === 'timer' && (
                     <label>
-                        Время (мин):
+                        {t('minutes')}
                         <input
                             type="number"
                             min={1}
@@ -107,12 +108,12 @@ const Settings = ({
             ))}
 
             <button onClick={addPlayer} disabled={localPlayers.length >= 6}>
-                ➕ Добавить игрока
+                ➕ {t('addPlayer')}
             </button>
 
             <div className="settings-buttons">
-                <button onClick={handleSave}>💾 Сохранить</button>
-                <button onClick={close}>❌ Закрыть</button>
+                <button onClick={handleSave}>💾 {t('save')}</button>
+                <button onClick={close}>❌ {t('close')}</button>
             </div>
         </div>
     );

@@ -1,3 +1,4 @@
+import {t} from "../i18n";
 import {smallPlayClick} from "../utils/sound.ts";
 
 type PlayerTimerProps = {
@@ -104,7 +105,7 @@ const PlayerTimer = ({
                         e.stopPropagation();
                         onReset();
                     }}
-                    title="Сбросить таймер">
+                    title={t('resetTimer')}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                     <path
                         d="M13 3a9 9 0 1 0 8.94 10h-2.02a7 7 0 1 1-1.76-5.29l-2.16 2.17H21V3l-2.59 2.59A8.96 8.96 0 0 0 13 3z"/>

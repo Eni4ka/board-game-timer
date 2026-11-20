@@ -5,11 +5,12 @@ import Settings from './components/Settings';
 // import { loadPlayers, savePlayers } from './utils/storage';
 import type { Player } from './types';
 import {playClick, smallPlayClick} from "./utils/sound.ts";
+import { t } from './i18n';
 import SettingsIcon from "./components/SettingsIcon.tsx";
 
 const defaultPlayers: Player[] = [
-    { name: 'Игрок 1', time: 0, color: '#90caf9' },
-    { name: 'Игрок 2', time: 0, color: '#f48fb1' },
+    { name: `${t('player')} 1`, time: 0, color: '#90caf9' },
+    { name: `${t('player')} 2`, time: 0, color: '#f48fb1' },
 ];
 
 function App() {
@@ -182,7 +183,7 @@ function App() {
 
     return (
         <div className="app">
-            <h1>Таймер игроков</h1>
+            <h1>{t('title')}</h1>
             <div className="top-bar">
                 <button className="settings-button" onClick={() => {
                     smallPlayClick()
@@ -247,7 +248,7 @@ function App() {
             </div>
 
             <button className="pass-turn-button"
-                    onClick={handleNext}>Передать ход
+                    onClick={handleNext}>{t('passTurn')}
             </button>
             {showSettings && (
                 <div className="modal-overlay">
@@ -281,7 +282,7 @@ function App() {
                         </button>
 
                         <button className="pass-turn-button mobile-button next-button"
-                                onClick={handleNext}>Передать ход
+                                onClick={handleNext}>{t('passTurn')}
                         </button>
                     </div>
 
