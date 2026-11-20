@@ -18,7 +18,7 @@ h1 {
 .app {
     width: 100%;
     max-width: 1200px;
-    padding-bottom: 80px;
+    padding-bottom: calc(80px + var(--ad-h, 0px));
     margin: 0 auto;
 }
 
@@ -287,7 +287,7 @@ button:focus {
 
 .mobile-controls {
     position: fixed;
-    bottom: 0;
+    bottom: var(--ad-h, 0px);
     left: 0;
     right: 0;
     background: #222;
