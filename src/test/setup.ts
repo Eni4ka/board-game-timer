@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { beforeEach } from 'vitest';
 
 // jsdom не умеет воспроизводить звук
 class FakeAudio {
@@ -10,3 +11,5 @@ class FakeAudio {
 (globalThis as unknown as { Audio: unknown }).Audio = FakeAudio;
 
 Object.defineProperty(navigator, 'language', { value: 'ru-RU', configurable: true });
+
+beforeEach(() => { localStorage.clear(); });

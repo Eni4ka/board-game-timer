@@ -8,6 +8,7 @@ import type { Player } from './types';
 import { playClick, smallPlayClick } from './utils/sound';
 import { PALETTE } from './utils/format';
 import { t } from './i18n';
+import { loadState, saveState } from './utils/storage';
 
 const defaultPlayers: Player[] = [
     { name: `${t('player')} 1`, time: 0, color: PALETTE[0] },
@@ -15,13 +16,17 @@ const defaultPlayers: Player[] = [
 ];
 
 function App() {
-    const [players, setPlayers] = useState<Player[]>(defaultPlayers);
-    const [activeIndex, setActiveIndex] = useState(0);
-    const [paused, setPaused] = useState(false);
-    const [showSetup, setShowSetup] = useState(true); // при запуске сразу открывается быстрая настройка
-    const [started, setStarted] = useState(false);
-    const [mode, setMode] = useState<'stopwatch' | 'timer'>('stopwatch');
-    const [startTime, setStartTime] = useState(300);
+    // Восстанавливаем сохранённую партию: игра стоит на паузе, настройки не открываются
+    const [saved] = useState(loadState);
+    const resumed = !!saved?.started;
+    const [players, setPlayers] = useState<Player[]>(saved?.players ?? defaultPlayers);
+    const [activeIndex, setActiveIndex] = useState(saved?.activeIndex ?? 0);
+    const [paused, setPaused] = useState(resumed);
+    const [showSetup, setShowSetup] = useState(!resumed); // при первом запуске сразу открывается быстрая настройка
+    const [started, setStarted] = useState(resumed);
+    const [mode, setMode] = useState<'stopwatch' | 'timer'>(saved?.mode ?? 'stopwatch');
+    const [startTime, setStartTime] = useState(saved?.startTime ?? 300);
+    const [autoPass, setAutoPass] = useState(saved?.autoPass ?? false);
 
     const running = !paused && !showSetup;
     const n = players.length;
@@ -51,6 +56,27 @@ function App() {
         }, 250);
         return () => clearInterval(id);
     }, [running, activeIndex, mode]);
+
+    useEffect(() => {
+        saveState({ players, activeIndex, mode, startTime, autoPass, started });
+    }, [players, activeIndex, mode, startTime, autoPass, started]);
+
+    // Сворачивание приложения ставит игру на паузу (звуки и вибрация в фоне не работают)
+    useEffect(() => {
+        const onHide = () => { if (document.hidden) setPaused(true); };
+        document.addEventListener('visibilitychange', onHide);
+        return () => document.removeEventListener('visibilitychange', onHide);
+    }, []);
+
+    // Экран не гаснет, пока идёт игра
+    useEffect(() => {
+        if (!running) return;
+        let lock: { release: () => Promise<void> } | null = null;
+        let cancelled = false;
+        const wl = (navigator as unknown as { wakeLock?: { request: (t: 'screen') => Promise<{ release: () => Promise<void> }> } }).wakeLock;
+        wl?.request('screen').then((l) => { if (cancelled) l.release().catch(() => {}); else lock = l; }).catch(() => {});
+        return () => { cancelled = true; lock?.release().catch(() => {}); };
+    }, [running]);
 
     // Звуки: «спешите» в последнюю минуту и сигнал окончания времени
     const hurryRef = useRef<HTMLAudioElement | null>(null);
@@ -85,9 +111,24 @@ function App() {
             finishPlayed.current = true;
             finishRef.current.currentTime = 0;
             finishRef.current.play().catch(() => {});
+            try { navigator.vibrate?.([300, 100, 300]); } catch { /* вибрации нет */ }
         }
         if (activeTime > 0) finishPlayed.current = false;
-    }, [activeTime, activeIndex, running, mode]);
+    }, [activeTime, running, mode]);
+
+    // Новый ход — сигнал об окончании времени может сработать снова
+    useEffect(() => { finishPlayed.current = false; }, [activeIndex]);
+
+    // Автопередача хода, когда у игрока вышло время
+    useEffect(() => {
+        if (!(autoPass && mode === 'timer' && running && activeTime === 0)) return;
+        const id = setTimeout(() => {
+            const nextIdx = Array.from({ length: n - 1 }, (_, k) => (activeIndex + 1 + k) % n)
+                .find((i) => players[i].time > 0);
+            if (nextIdx !== undefined) setActiveIndex(nextIdx);
+        }, 1500);
+        return () => clearTimeout(id);
+    }, [autoPass, mode, running, activeTime, activeIndex, n, players]);
 
     const pass = () => {
         playClick();
@@ -97,6 +138,7 @@ function App() {
     const startGame = (cfg: SetupResult) => {
         setMode(cfg.mode);
         setStartTime(cfg.startTime);
+        setAutoPass(cfg.autoPass);
         setPlayers(cfg.players.map((p) => ({ ...p, time: cfg.mode === 'timer' ? cfg.startTime : 0 })));
         setActiveIndex(0);
         setPaused(false);
@@ -118,6 +160,7 @@ function App() {
                 time={active.time}
                 color={active.color || PALETTE[0]}
                 mode={mode}
+                paused={paused}
                 onPass={pass}
                 onReset={reset}
                 onAdjust={adjust}
@@ -145,6 +188,7 @@ function App() {
                         players={players}
                         mode={mode}
                         startTime={startTime}
+                        autoPass={autoPass}
                         canContinue={started}
                         onStart={startGame}
                         onClose={() => setShowSetup(false)}

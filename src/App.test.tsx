@@ -12,7 +12,7 @@ const startDefault = () => fireEvent.click(screen.getByText(/Начать игр
 const openSetup = () => fireEvent.click(q('.settings-button'));
 function startTimer(min: number) {
   fireEvent.click(screen.getByText('Таймер').closest('button')!);
-  fireEvent.change(screen.getByRole('spinbutton'), { target: { value: String(min) } });
+  fireEvent.change(screen.getByLabelText('мин'), { target: { value: String(min) } });
   startDefault();
 }
 
@@ -32,7 +32,7 @@ describe('быстрая настройка при запуске', () => {
     expect(screen.getByText(/Шахматные часы/)).toBeInTheDocument();
     expect(screen.getByText(/параметров нет/)).toBeInTheDocument();
     fireEvent.click(screen.getByText('Таймер').closest('button')!);
-    expect(screen.getByRole('spinbutton')).toBeInTheDocument();
+    expect(screen.getByLabelText('мин')).toBeInTheDocument();
   });
   it('имя и цвет игрока меняются', () => {
     fireEvent.change(screen.getByLabelText('Имя 1'), { target: { value: 'Вася' } });
@@ -44,7 +44,7 @@ describe('быстрая настройка при запуске', () => {
   it('число игроков от 2 до 6', () => {
     for (let i = 0; i < 6; i++) fireEvent.click(screen.getByText(/Добавить игрока/));
     expect(screen.getAllByLabelText(/^Имя /)).toHaveLength(6);
-    for (let i = 0; i < 6; i++) fireEvent.click(screen.getByText(/Убрать игрока/));
+    for (let i = 0; i < 6; i++) fireEvent.click(screen.getByLabelText('Убрать игрока 1'));
     expect(screen.getAllByLabelText(/^Имя /)).toHaveLength(2);
   });
 });
@@ -100,14 +100,16 @@ describe('секундомер и правила хода', () => {
     tick(3600 + 62);
     expect(activeTime()).toBe('1:01:02');
   });
-  it('корректировка ±1/±5 минут и сброс, не ниже нуля', () => {
+  it('корректировка ±10 с / ±1 мин и сброс (с подтверждением), не ниже нуля', () => {
     const b = (label: string) => screen.getByText(label);
-    fireEvent.click(b('+5')); expect(activeTime()).toBe('5:00');
-    fireEvent.click(b('+1')); expect(activeTime()).toBe('6:00');
-    fireEvent.click(b('−1')); expect(activeTime()).toBe('5:00');
-    fireEvent.click(b('−5')); fireEvent.click(b('−5')); expect(activeTime()).toBe('0:00');
+    fireEvent.click(b('+1:00')); expect(activeTime()).toBe('1:00');
+    fireEvent.click(b('+0:10')); expect(activeTime()).toBe('1:10');
+    fireEvent.click(b('−0:10')); expect(activeTime()).toBe('1:00');
+    fireEvent.click(b('−1:00')); fireEvent.click(b('−1:00')); expect(activeTime()).toBe('0:00');
     tick(10);
-    fireEvent.click(screen.getByLabelText('Сбросить таймер'));
+    fireEvent.click(q('.reset-btn'));
+    expect(activeTime()).toBe('0:10'); // первое нажатие только просит подтверждения
+    fireEvent.click(q('.reset-btn'));
     expect(activeTime()).toBe('0:00');
   });
 });
@@ -130,7 +132,8 @@ describe('режим таймера', () => {
   it('сброс возвращает стартовое время', () => {
     startTimer(3);
     tick(30);
-    fireEvent.click(screen.getByLabelText('Сбросить таймер'));
+    fireEvent.click(q('.reset-btn'));
+    fireEvent.click(q('.reset-btn'));
     expect(activeTime()).toBe('3:00');
   });
 });
@@ -149,6 +152,83 @@ describe('повторное открытие настроек', () => {
     tick(4);
     openSetup();
     startDefault();
+    expect(activeTime()).toBe('0:00');
+  });
+});
+
+describe('валидация и новые возможности', () => {
+  const setTimer = (m: string, sec = '0') => {
+    fireEvent.click(screen.getByText('Таймер').closest('button')!);
+    fireEvent.change(screen.getByLabelText('мин'), { target: { value: m } });
+    fireEvent.change(screen.getByLabelText('сек'), { target: { value: sec } });
+    fireEvent.blur(screen.getByLabelText('сек'));
+  };
+  it('пустое имя заменяется на «Игрок N», пробелы обрезаются', () => {
+    fireEvent.change(screen.getByLabelText('Имя 1'), { target: { value: '   ' } });
+    fireEvent.change(screen.getByLabelText('Имя 2'), { target: { value: ' Аня ' } });
+    startDefault();
+    expect(activeName()).toBe('Игрок 1');
+    expect(miniText('next')).toContain('Аня');
+  });
+  it('дубликаты имён получают номер, при вводе есть предупреждение', () => {
+    fireEvent.change(screen.getByLabelText('Имя 1'), { target: { value: 'Ян' } });
+    fireEvent.change(screen.getByLabelText('Имя 2'), { target: { value: 'ян' } });
+    expect(screen.getAllByText(/Такое имя уже есть/)).toHaveLength(2);
+    startDefault();
+    expect(miniText('next')).toContain('ян 2');
+  });
+  it('имя обрезается до 15 символов, эмодзи считаются как один символ', () => {
+    fireEvent.change(screen.getByLabelText('Имя 1'), { target: { value: '👨‍👩‍👧'.repeat(20) } });
+    expect(screen.getByText('15/15')).toBeInTheDocument();
+  });
+  it('время вне диапазона приводится к 0:10 … 600:00', () => {
+    setTimer('0', '0'); expect(screen.getByLabelText('мин')).toHaveValue(0); expect(screen.getByLabelText('сек')).toHaveValue(10);
+    setTimer('99999', '0'); expect(screen.getByLabelText('мин')).toHaveValue(600);
+    setTimer('1', '99'); expect(screen.getByLabelText('мин')).toHaveValue(1); expect(screen.getByLabelText('сек')).toHaveValue(59);
+  });
+  it('можно задать секунды', () => {
+    setTimer('0', '30');
+    startDefault();
+    expect(activeTime()).toBe('0:30');
+  });
+  it('можно убрать и переставить игроков', () => {
+    fireEvent.change(screen.getByLabelText('Имя 1'), { target: { value: 'А' } });
+    fireEvent.change(screen.getByLabelText('Имя 2'), { target: { value: 'Б' } });
+    fireEvent.click(screen.getByText(/Добавить игрока/));
+    fireEvent.click(screen.getByLabelText('Ниже 1'));
+    startDefault();
+    expect(activeName()).toBe('Б');
+  });
+  it('по окончании времени — надпись «Время вышло!» и красная рамка', () => {
+    startTimer(1);
+    tick(61);
+    expect(screen.getByText('Время вышло!')).toBeInTheDocument();
+  });
+  it('автопередача хода при окончании времени', () => {
+    fireEvent.click(screen.getByText('Таймер').closest('button')!);
+    fireEvent.change(screen.getByLabelText('мин'), { target: { value: '0' } });
+    fireEvent.change(screen.getByLabelText('сек'), { target: { value: '10' } });
+    fireEvent.click(screen.getByLabelText(/Передавать ход автоматически/));
+    startDefault();
+    tick(10);
+    tick(2);
+    expect(activeName()).toBe('Игрок 2');
+  });
+  it('настройки и партия восстанавливаются после перезапуска (на паузе)', () => {
+    startDefault();
+    tick(7);
+    document.body.innerHTML = '';
+    render(<App />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(activeTime()).toBe('0:07');
+    expect(screen.getByText(/Пауза/)).toBeInTheDocument();
+  });
+  it('сворачивание приложения ставит игру на паузу', () => {
+    startDefault();
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+    tick(5);
     expect(activeTime()).toBe('0:00');
   });
 });
