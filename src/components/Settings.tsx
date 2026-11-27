@@ -1,119 +1,111 @@
-import {useState} from 'react';
-import {t} from '../i18n';
-import type {Player} from '../types';
+import { useState } from 'react';
+import { t } from '../i18n';
+import { PALETTE } from '../utils/format';
+import type { Player } from '../types';
 
-type SettingsProps = {
+export type SetupResult = { players: Player[]; mode: 'stopwatch' | 'timer'; startTime: number };
+
+type Props = {
     players: Player[];
-    setPlayers: (players: Player[]) => void;
-    close: () => void;
     mode: 'stopwatch' | 'timer';
-    setMode: (mode: 'stopwatch' | 'timer') => void;
     startTime: number;
-    setStartTime: (value: number) => void;
+    canContinue: boolean;
+    onStart: (cfg: SetupResult) => void;
+    onClose: () => void;
 };
 
-const Settings = ({
-                      players,
-                      setPlayers,
-                      close,
-                      mode,
-                      setMode,
-                      startTime,
-                      setStartTime,
-                  }: SettingsProps) => {
-    const [localPlayers, setLocalPlayers] = useState<Player[]>(players.map((p) => ({ ...p })));
+const QUICK_MINUTES = [1, 3, 5, 10, 15, 30];
 
-    const handleNameChange = (index: number, name: string) => {
-        const updated = [...localPlayers];
-        updated[index].name = name;
-        setLocalPlayers(updated);
+const Settings = ({ players, mode, startTime, canContinue, onStart, onClose }: Props) => {
+    const [list, setList] = useState<Player[]>(players.map((p) => ({ ...p })));
+    const [m, setM] = useState(mode);
+    const [minutes, setMinutes] = useState(Math.max(1, Math.round(startTime / 60)));
+
+    const patch = (i: number, p: Partial<Player>) =>
+        setList((prev) => prev.map((x, idx) => (idx === i ? { ...x, ...p } : x)));
+
+    const add = () => {
+        if (list.length >= 6) return;
+        const n = list.length;
+        setList([...list, { name: `${t('player')} ${n + 1}`, time: 0, color: PALETTE[n % PALETTE.length] }]);
     };
-
-    const handleColorChange = (index: number, color: string) => {
-        const updated = [...localPlayers];
-        updated[index].color = color;
-        setLocalPlayers(updated);
-    };
-
-    const addPlayer = () => {
-        if (localPlayers.length >= 6) return;
-        setLocalPlayers([
-            ...localPlayers,
-            {name: `${t('player')} ${localPlayers.length + 1}`, time: 0, color: getRandomColor()},
-        ]);
-    };
-
-    const removePlayer = (index: number) => {
-        setLocalPlayers(localPlayers.filter((_, i) => i !== index));
-    };
-
-    const handleSave = () => {
-        // Если таймер — задаём всем игрокам стартовое время
-        const updatedPlayers =
-            mode === 'timer'
-                ? localPlayers.map((p) => ({ ...p, time: startTime }))
-                : localPlayers;
-
-        setPlayers(updatedPlayers);
-        close();
-    };
-
-    const getRandomColor = (): string => {
-        // Возвращаем цвет в HEX, например #A1B2C3
-        return '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
-    };
+    const remove = () => { if (list.length > 2) setList(list.slice(0, -1)); };
 
     return (
-        <div className="settings-panel">
-            <h2>{t('settings')}</h2>
-            <div className="settings-mode">
-                <label>
-                    {t('mode')}
-                    <select value={mode} onChange={(e) => setMode(e.target.value as 'stopwatch' | 'timer')}>
-                        <option value="stopwatch">{t('stopwatch')}</option>
-                        <option value="timer">{t('timer')}</option>
-                    </select>
-                </label>
+        <div className="setup" role="dialog" aria-label={t('setupTitle')}>
+            <h2>{t('setupTitle')}</h2>
 
-                {mode === 'timer' && (
-                    <label>
-                        {t('minutes')}
+            <section>
+                <h3>{t('players')} ({list.length})</h3>
+                {list.map((p, i) => (
+                    <div key={i} className="setup-player">
                         <input
-                            type="number"
-                            min={1}
-                            value={startTime / 60}
-                            onChange={(e) => setStartTime(Number(e.target.value) * 60)}
+                            type="text"
+                            aria-label={`${t('name')} ${i + 1}`}
+                            value={p.name}
+                            maxLength={15}
+                            onChange={(e) => patch(i, { name: e.target.value })}
                         />
-                    </label>
-                )}
-            </div>
-
-            {localPlayers.map((player, index) => (
-                <div key={index} className="player-settings">
-                    <input
-                        type="text"
-                        value={player.name}
-                        onChange={(e) => handleNameChange(index, e.target.value)}
-                        maxLength={15}
-                    />
-                    <input
-                        type="color"
-                        value={player.color || '#cccccc'}
-                        onChange={(e) => handleColorChange(index, e.target.value)}
-                    />
-                    {localPlayers.length > 2 && (
-                        <button onClick={() => removePlayer(index)}>🗑️</button>
-                    )}
+                        <input
+                            type="color"
+                            aria-label={`${t('color')} ${i + 1}`}
+                            value={p.color || PALETTE[0]}
+                            onChange={(e) => patch(i, { color: e.target.value })}
+                        />
+                        <div className="swatches">
+                            {PALETTE.map((c) => (
+                                <button key={c} className="swatch" style={{ background: c }}
+                                        aria-label={c} onClick={() => patch(i, { color: c })} />
+                            ))}
+                        </div>
+                    </div>
+                ))}
+                <div className="setup-row">
+                    <button onClick={add} disabled={list.length >= 6}>＋ {t('addPlayer')}</button>
+                    <button onClick={remove} disabled={list.length <= 2}>− {t('removePlayer')}</button>
                 </div>
-            ))}
+            </section>
 
-            <button onClick={addPlayer} disabled={localPlayers.length >= 6}>
-                ➕ {t('addPlayer')}
-            </button>
+            <section>
+                <h3>{t('type')}</h3>
+                <button className={`type-card ${m === 'stopwatch' ? 'selected' : ''}`} onClick={() => setM('stopwatch')}>
+                    <b>{t('stopwatch')}</b><span>{t('stopwatchDesc')}</span>
+                </button>
+                <button className={`type-card ${m === 'timer' ? 'selected' : ''}`} onClick={() => setM('timer')}>
+                    <b>{t('timer')}</b><span>{t('timerDesc')}</span>
+                </button>
+            </section>
 
-            <div className="settings-buttons">
-                <button onClick={handleSave}>💾 {t('save')}</button>
-                <button onClick={close}>❌ {t('close')}</button>
+            <section>
+                <h3>{t('params')}</h3>
+                {m === 'timer' ? (
+                    <>
+                        <label className="setup-row">
+                            {t('minutes')}
+                            <input
+                                type="number"
+                                min={1}
+                                max={600}
+                                value={minutes}
+                                onChange={(e) => setMinutes(Math.max(1, Math.floor(Number(e.target.value)) || 1))}
+                            />
+                        </label>
+                        <div className="setup-row chips">
+                            {QUICK_MINUTES.map((q) => (
+                                <button key={q} className={minutes === q ? 'selected' : ''} onClick={() => setMinutes(q)}>{q}</button>
+                            ))}
+                        </div>
+                    </>
+                ) : (
+                    <p>{t('noParams')}</p>
+                )}
+            </section>
+
+            <div className="setup-actions">
+                <button className="primary" onClick={() => onStart({ players: list, mode: m, startTime: minutes * 60 })}>
+                    ▶ {t('start')}
+                </button>
+                {canContinue && <button onClick={onClose}>{t('close')}</button>}
             </div>
         </div>
     );

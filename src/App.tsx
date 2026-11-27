@@ -1,294 +1,158 @@
 import { useRef, useState, useEffect } from 'react';
-import './App.css'
-import PlayerTimer from './components/PlayerTimer';
-import Settings from './components/Settings';
-// import { loadPlayers, savePlayers } from './utils/storage';
+import './App.css';
+import ActivePlayer from './components/ActivePlayer';
+import MiniPlayer from './components/MiniPlayer';
+import Settings, { type SetupResult } from './components/Settings';
+import SettingsIcon from './components/SettingsIcon';
 import type { Player } from './types';
-import {playClick, smallPlayClick} from "./utils/sound.ts";
+import { playClick, smallPlayClick } from './utils/sound';
+import { PALETTE } from './utils/format';
 import { t } from './i18n';
-import SettingsIcon from "./components/SettingsIcon.tsx";
 
 const defaultPlayers: Player[] = [
-    { name: `${t('player')} 1`, time: 0, color: '#90caf9' },
-    { name: `${t('player')} 2`, time: 0, color: '#f48fb1' },
+    { name: `${t('player')} 1`, time: 0, color: PALETTE[0] },
+    { name: `${t('player')} 2`, time: 0, color: PALETTE[1] },
 ];
 
 function App() {
-    // const [players, setPlayers] = useState<Player[]>(
-    //     () => loadPlayers() || defaultPlayers
-    // );
-
     const [players, setPlayers] = useState<Player[]>(defaultPlayers);
-
-
-
-    const [activeIndex, setActiveIndex] = useState<number>(0);
-
-    const [paused, setPaused] = useState<boolean>(false);
-
-    const [showSettings, setShowSettings] = useState(false);
-
-    // const [mode, setMode] = useState<'stopwatch' | 'timer'>(
-    //     localStorage.getItem('mode') as 'stopwatch' | 'timer' || 'stopwatch'
-    // );
-    //
-    // const [startTime, setStartTime] = useState(() => {
-    //     const saved = localStorage.getItem('startTime');
-    //     return saved ? Number(saved) : 300; // по умолчанию 5 мин
-    // });
-
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [paused, setPaused] = useState(false);
+    const [showSetup, setShowSetup] = useState(true); // при запуске сразу открывается быстрая настройка
+    const [started, setStarted] = useState(false);
     const [mode, setMode] = useState<'stopwatch' | 'timer'>('stopwatch');
+    const [startTime, setStartTime] = useState(300);
 
-    const [startTime, setStartTime] = useState<number>(300); // 5 минут по умолчанию
+    const running = !paused && !showSetup;
+    const n = players.length;
+    const active = players[activeIndex] ?? players[0];
+    const prev = players[(activeIndex - 1 + n) % n];
+    const next = players[(activeIndex + 1) % n];
 
-    const hurryAudioRef = useRef<HTMLAudioElement | null>(null);
-    const isPlayingRef = useRef(false);
-
+    // Ход времени: считаем по часам устройства, чтобы время не «плыло» при задержках
     useEffect(() => {
-        if (activeIndex >= players.length) setActiveIndex(0);
-    }, [players.length, activeIndex]);
-
-    const activeTime = players[activeIndex]?.time || 0;
-
-    const finishAudioRef = useRef<HTMLAudioElement | null>(null);
-
-    const hasPlayedFinishSoundRef = useRef(false);
-
-    // // Сохраняем режим
-    // useEffect(() => {
-    //     localStorage.setItem('mode', mode);
-    // }, [mode]);
-    //
-    // // Сохраняем стартовое время
-    // useEffect(() => {
-    //     localStorage.setItem('startTime', startTime.toString());
-    // }, [startTime]);
-
-    useEffect(() => {
-        if (mode === 'timer') {
-            setPlayers((prev) =>
-                prev.map((p) => ({
-                    ...p,
-                    time: startTime,
-                }))
+        if (!running) return;
+        let last = Date.now();
+        let acc = 0;
+        const id = setInterval(() => {
+            const now = Date.now();
+            acc += now - last;
+            last = now;
+            const secs = Math.floor(acc / 1000);
+            if (secs < 1) return;
+            acc -= secs * 1000;
+            setPlayers((ps) =>
+                ps.map((p, i) =>
+                    i !== activeIndex
+                        ? p
+                        : { ...p, time: mode === 'timer' ? Math.max(0, p.time - secs) : p.time + secs }
+                )
             );
-        } else {
-            setPlayers((prev) =>
-                prev.map((p) => ({
-                    ...p,
-                    time: 0,
-                }))
-            );
-        }
-    }, [mode, startTime]);
+        }, 250);
+        return () => clearInterval(id);
+    }, [running, activeIndex, mode]);
 
-
-    // ⏱️ Инкремент таймера активного игрока
-    useEffect(() => {
-        if (paused) return;
-
-        const interval = setInterval(() => {
-            setPlayers((prevPlayers) =>
-                prevPlayers.map((player, index) => {
-                    if (index !== activeIndex) return player;
-
-                    const newTime =
-                        mode === 'timer'
-                            ? Math.max(0, player.time - 1)
-                            : player.time + 1;
-
-                    return { ...player, time: newTime };
-                })
-            );
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [activeIndex, paused, mode]);
-
-    // 💾 Сохраняем состояние игроков
-    // useEffect(() => {
-    //     savePlayers(players);
-    // }, [players]);
-
-    //музыка истечения времени
-    useEffect(() => {
-        if (!hurryAudioRef.current) {
-            hurryAudioRef.current = new Audio('sounds/hurry.mp3');
-            hurryAudioRef.current.loop = true;
-        }
-
-        const shouldPlay =
-            mode === 'timer' && !paused && activeTime <= 60 && activeTime > 0;
-
-        if (shouldPlay && !isPlayingRef.current) {
-            isPlayingRef.current = true;
-            hurryAudioRef.current.currentTime = 0;
-            hurryAudioRef.current.play().catch(() => {
-                isPlayingRef.current = false;
-            });
-        }
-
-        if (!shouldPlay && isPlayingRef.current) {
-            hurryAudioRef.current?.pause();
-            hurryAudioRef.current.currentTime = 0;
-            isPlayingRef.current = false;
-        }
-    }, [activeTime, paused, mode]);
+    // Звуки: «спешите» в последнюю минуту и сигнал окончания времени
+    const hurryRef = useRef<HTMLAudioElement | null>(null);
+    const hurryOn = useRef(false);
+    const finishRef = useRef<HTMLAudioElement | null>(null);
+    const finishPlayed = useRef(false);
+    const activeTime = active?.time ?? 0;
 
     useEffect(() => {
-        return () => {
-            if (hurryAudioRef.current) {
-                hurryAudioRef.current.pause();
-                hurryAudioRef.current.currentTime = 0;
-            }
-        };
-    }, []);
+        if (!hurryRef.current) {
+            hurryRef.current = new Audio('sounds/hurry.mp3');
+            hurryRef.current.loop = true;
+        }
+        const should = mode === 'timer' && running && activeTime <= 60 && activeTime > 0;
+        if (should && !hurryOn.current) {
+            hurryOn.current = true;
+            hurryRef.current.currentTime = 0;
+            hurryRef.current.play().catch(() => { hurryOn.current = false; });
+        }
+        if (!should && hurryOn.current) {
+            hurryRef.current.pause();
+            hurryRef.current.currentTime = 0;
+            hurryOn.current = false;
+        }
+    }, [activeTime, running, mode]);
+
+    useEffect(() => () => { hurryRef.current?.pause(); }, []);
 
     useEffect(() => {
-        if (!finishAudioRef.current) {
-            finishAudioRef.current = new Audio('sounds/time-up.mp3');
+        if (!finishRef.current) finishRef.current = new Audio('sounds/time-up.mp3');
+        if (mode === 'timer' && running && activeTime === 0 && !finishPlayed.current) {
+            finishPlayed.current = true;
+            finishRef.current.currentTime = 0;
+            finishRef.current.play().catch(() => {});
         }
+        if (activeTime > 0) finishPlayed.current = false;
+    }, [activeTime, activeIndex, running, mode]);
 
-        const activeTime = players[activeIndex]?.time;
-
-        const shouldPlay =
-            mode === 'timer' &&
-            !paused &&
-            activeTime === 0 &&
-            !hasPlayedFinishSoundRef.current;
-
-        if (shouldPlay) {
-            hasPlayedFinishSoundRef.current = true;
-            finishAudioRef.current.currentTime = 0;
-            finishAudioRef.current.play().catch(() => {});
-        }
-
-        // Сброс флага при смене игрока или при старте времени
-        if (activeTime > 0 && hasPlayedFinishSoundRef.current) {
-            hasPlayedFinishSoundRef.current = false;
-        }
-    }, [players, activeIndex, paused, mode]);
-
-    // 🔁 Переключение активного игрока
-    const handleNext = () => {
+    const pass = () => {
         playClick();
-        setActiveIndex((prev) => (prev + 1) % players.length);
+        setActiveIndex((i) => (i + 1) % n);
     };
 
-    const handleCardClick = (index: number) => {
-        if (!paused) {
-            setActiveIndex((index + 1) % players.length);
-        }
+    const startGame = (cfg: SetupResult) => {
+        setMode(cfg.mode);
+        setStartTime(cfg.startTime);
+        setPlayers(cfg.players.map((p) => ({ ...p, time: cfg.mode === 'timer' ? cfg.startTime : 0 })));
+        setActiveIndex(0);
+        setPaused(false);
+        setStarted(true);
+        setShowSetup(false);
     };
+
+    const adjust = (delta: number) =>
+        setPlayers((ps) => ps.map((p, i) => (i === activeIndex ? { ...p, time: Math.max(0, p.time + delta) } : p)));
+
+    const reset = () =>
+        setPlayers((ps) => ps.map((p, i) => (i === activeIndex ? { ...p, time: mode === 'timer' ? startTime : 0 } : p)));
 
     return (
         <div className="app">
-            <h1>{t('title')}</h1>
-            <div className="top-bar">
-                <button className="settings-button" onClick={() => {
-                    smallPlayClick()
-                    setShowSettings(true)
-                }}>
-                    <SettingsIcon/>
+            <MiniPlayer position="prev" label={t('previous')} name={prev.name} time={prev.time} color={prev.color || PALETTE[0]} />
+            <ActivePlayer
+                name={active.name}
+                time={active.time}
+                color={active.color || PALETTE[0]}
+                mode={mode}
+                onPass={pass}
+                onReset={reset}
+                onAdjust={adjust}
+            />
+            <MiniPlayer position="next" label={t('next')} name={next.name} time={next.time} color={next.color || PALETTE[1]} />
+
+            <div className="controls">
+                <button
+                    className="settings-button ctl"
+                    aria-label={t('settings')}
+                    onClick={() => { smallPlayClick(); setShowSetup(true); }}
+                >
+                    <SettingsIcon />
                 </button>
-            </div>
-
-            {/* Кнопка Паузы */}
-            <div className="pause-button-wrapper">
-                <button className="pause-button" onClick={() => {
-                    playClick();
-                    setPaused((prev) => !prev)
-                }}>
-                    {paused ? (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                            <path d="M8 5v14l11-7z"/>
-                        </svg>
-                    ) : (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                            <path d="M6 5h4v14H6zm8 0h4v14h-4z"/>
-                        </svg>
-                    )}
+                <button className="pause-button ctl" onClick={() => { playClick(); setPaused((p) => !p); }}
+                        aria-label={paused ? t('resume') : t('pause')}>
+                    {paused ? '▶' : '❚❚'}
                 </button>
+                <button className="pass-turn-button ctl" onClick={pass}>{t('passTurn')}</button>
             </div>
 
-            {/* Сетка с игроками */}
-            <div className="player-grid-wrapper">
-                <div className="player-grid">
-                {players.map((player, index) => (
-                    <PlayerTimer
-                        key={index}
-                        name={player.name}
-                        time={player.time}
-                        active={index === activeIndex}
-                        color={player.color || '#ccc'}
-                        onReset={() => {
-                            setPlayers((prev) =>
-                                prev.map((p, i) =>
-                                    i === index
-                                        ? {...p, time: mode === 'timer' ? startTime : 0}
-                                        : p
-                                )
-                            );
-                        }}
-                        onClick={() => {
-                            playClick(); // вот сюда вставляем
-                            handleCardClick(index);
-                        }}
-                        onAdjustTime={(delta) => {
-                            setPlayers((prev) =>
-                                prev.map((p, i) =>
-                                    i === index ? {...p, time: Math.max(0, p.time + delta)} : p
-                                )
-                            );
-                        }}
-                        mode={mode}
-                    />
-                ))}
-            </div>
-            </div>
-
-            <button className="pass-turn-button"
-                    onClick={handleNext}>{t('passTurn')}
-            </button>
-            {showSettings && (
+            {showSetup && (
                 <div className="modal-overlay">
                     <Settings
                         players={players}
-                        setPlayers={setPlayers}
-                        close={() => setShowSettings(false)}
                         mode={mode}
-                        setMode={setMode}
                         startTime={startTime}
-                        setStartTime={setStartTime}
+                        canContinue={started}
+                        onStart={startGame}
+                        onClose={() => setShowSetup(false)}
                     />
                 </div>
-                    )}
+            )}
+        </div>
+    );
+}
 
-
-                    <div className="mobile-controls">
-                        <button className="pause-button mobile-button" onClick={() => {
-                            playClick();
-                            setPaused((prev) => !prev)
-                        }}>
-                            {paused ? (
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                                    <path d="M8 5v14l11-7z"/>
-                                </svg>
-                            ) : (
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                                    <path d="M6 5h4v14H6zm8 0h4v14h-4z"/>
-                                </svg>
-                            )}
-                        </button>
-
-                        <button className="pass-turn-button mobile-button next-button"
-                                onClick={handleNext}>{t('passTurn')}
-                        </button>
-                    </div>
-
-                </div>
-
-            );
-            }
-
-            export default App
+export default App;
