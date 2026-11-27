@@ -1,6 +1,24 @@
 # Google Play listing
 
-## Русский (ru-RU)
+Target: English-speaking audience (US, UK, CA, AU, IE, NZ first). Default store language: English (US).
+
+## English (en-US) — DEFAULT language
+**Title (30):** Game Timer: Player Turns
+**Short (80):** Turn timer and chess clock for board games, 2–6 players
+**Full:**
+Game Timer is a simple turn timer for board games, chess, poker and game nights.
+
+• Stopwatch mode: see who takes the longest to think
+• Countdown mode (chess clock): set minutes per player
+• 2 to 6 players with custom names and colors
+• Pass the turn with one tap on a card or the button
+• Pause, reset, quick ±1 and ±5 minute adjustments
+• Sound alerts: last-minute warning and time-up signal
+• Works offline, no sign-up
+
+Great for board games, chess, go, poker, trivia, RPG and family game nights.
+
+## Русский (ru-RU) — перевод
 **Название (до 30 симв.):** Игровой таймер: ходы игроков
 **Краткое описание (до 80):** Таймер ходов и шахматные часы для настольных игр на 2–6 игроков
 **Полное описание:**
@@ -16,25 +34,9 @@
 
 Подходит для настольных игр, шахмат, го, покера, викторин, ролевых и семейных игр.
 
-## English (en-US)
-**Title (30):** Game Timer for Board Games
-**Short (80):** Turn timer and chess clock for board games, 2–6 players
-**Full:**
-Game Timer is a simple turn timer for board games, chess, poker and game nights.
-
-• Stopwatch mode: see who takes the longest to think
-• Countdown mode (chess clock): set minutes per player
-• 2 to 6 players with custom names and colors
-• Pass the turn with one tap on a card or the button
-• Pause, reset, quick ±1 and ±5 minute adjustments
-• Sound alerts: last-minute warning and time-up signal
-• Works offline, no sign-up
-
-Great for board games, chess, go, poker, trivia, RPG and family game nights.
-
 ## Keywords / ASO
-RU: таймер для настольных игр, шахматные часы, таймер ходов, секундомер, игровой таймер, таймер для игроков
-EN: board game timer, chess clock, turn timer, game timer, player timer, stopwatch
+RU (secondary): таймер для настольных игр, шахматные часы, таймер ходов, секундомер, игровой таймер, таймер для игроков
+EN (primary): board game timer, chess clock, turn timer, game timer, player timer, stopwatch
 
 ## Остальное
 - Категория: Инструменты (Tools) или Настольные игры; возраст 3+, содержит рекламу: да
