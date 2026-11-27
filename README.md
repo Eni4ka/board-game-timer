@@ -4,23 +4,16 @@ A sleek and customizable timer app for turn-based games. Perfect for tracking ti
 
 ## 🚀 Features
 
-* 🕹️ Two timer modes:
+* 🕹️ Два режима:
 
-  * **Stopwatch** — count up from zero.
-  * **Timer** — countdown from a fixed start time.
-* 👆 Tap the screen to switch turns.
-* 🧍 Tap a player during pause to manually assign the active player.
-* ⌛ Bonus time: Optionally add extra seconds after each turn (increment).
-* 🔄 Reset time and moves per player.
-* 🎨 Customize:
-
-  * Player names
-  * Player colors
-  * Global background color
-* 🖼️ Add a background photo from mobile device (optional).
-* ➕ Add up to 6 players.
-* 📱 Fully responsive and optimized for mobile usage.
-* 🕶️ Visual effects: glowing timers, active state highlighting, smooth transitions.
+  * **Секундомер** — считает вверх.
+  * **Таймер** — шахматные часы: обратный отсчёт (от 0:10 до 600:00), опционально автопередача хода при нуле.
+* 👆 Тап по центральному окну или кнопка «Передать ход» — следующий игрок.
+* 🪟 Три окна: предыдущий / текущий / следующий игрок (в альбомной ориентации — слева текущий, справа остальные).
+* ⏱ Коррекция времени ±10 с / ±1 мин, сброс с подтверждением.
+* 🎨 Имена (до 15 символов) и цвета игроков, порядок ходов можно менять.
+* ➕ От 2 до 6 игроков.
+* 💾 Партия и настройки сохраняются; при сворачивании игра ставится на паузу, экран не гаснет.
 
 ## 🛠️ Technologies Used
 
