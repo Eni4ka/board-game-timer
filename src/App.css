@@ -190,3 +190,8 @@ button { font-family: inherit; }
     .adjust-row { gap: 4px; }
     .adjust-btn { min-width: 50px; padding: 0 4px; font-size: 0.95rem; }
 }
+
+.build-info { margin-top: 24px; padding-top: 8px; border-top: 1px solid #334155; }
+.build-info dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; color: #e2e8f0; font-size: 0.95rem; }
+.build-info dt { color: #94a3b8; }
+.build-info dd { margin: 0; word-break: break-word; }

@@ -8,3 +8,4 @@ declare module 'virtual:pwa-register' {
 
     export function registerSW(options?: RegisterSWOptions): void;
 }
+declare const __BUILD_INFO__: { env: string; version: string; date: string };

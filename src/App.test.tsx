@@ -232,3 +232,9 @@ describe('валидация и новые возможности', () => {
     expect(activeTime()).toBe('0:00');
   });
 });
+
+describe('о сборке', () => {
+  it('в обычной сборке блока «О сборке» нет', () => {
+    expect(screen.queryByText('О сборке')).toBeNull();
+  });
+});

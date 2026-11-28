@@ -35,6 +35,11 @@ const ru = {
   moveUp: 'Выше',
   moveDown: 'Ниже',
   removeNamed: 'Убрать игрока',
+  buildInfo: 'О сборке',
+  buildVersion: 'Версия',
+  buildEnv: 'Среда',
+  buildEnvInternal: 'Внутреннее тестирование',
+  buildDate: 'Дата сборки',
 };
 const en: typeof ru = {
   player: 'Player',
@@ -73,6 +78,11 @@ const en: typeof ru = {
   moveUp: 'Move up',
   moveDown: 'Move down',
   removeNamed: 'Remove player',
+  buildInfo: 'Build info',
+  buildVersion: 'Version',
+  buildEnv: 'Environment',
+  buildEnvInternal: 'Internal testing',
+  buildDate: 'Build date',
 };
 
 export const lang = (typeof navigator !== 'undefined' ? navigator.language : 'en').toLowerCase();

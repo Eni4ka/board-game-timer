@@ -3,6 +3,7 @@ import { t } from '../i18n';
 import { PALETTE } from '../utils/format';
 import { clampName, nameLength, NAME_MAX } from '../utils/names';
 import { MAX_PLAYERS, MIN_SECONDS, MAX_SECONDS } from '../utils/storage';
+import { BUILD, showBuildInfo, formatBuildDate } from '../utils/build';
 import type { Player } from '../types';
 
 export type SetupResult = { players: Player[]; mode: 'stopwatch' | 'timer'; startTime: number; autoPass: boolean };
@@ -194,6 +195,17 @@ const Settings = ({ players, mode, startTime, autoPass, canContinue, onStart, on
                 <button className="primary" onClick={start}>▶ {t('start')}</button>
                 {canContinue && <button onClick={onClose}>{t('close')}</button>}
             </div>
+
+            {showBuildInfo() && (
+                <section className="build-info" aria-label={t('buildInfo')}>
+                    <h3>{t('buildInfo')}</h3>
+                    <dl>
+                        <dt>{t('buildVersion')}</dt><dd>{BUILD.version}</dd>
+                        <dt>{t('buildEnv')}</dt><dd>{t('buildEnvInternal')}</dd>
+                        <dt>{t('buildDate')}</dt><dd>{formatBuildDate(BUILD.date)}</dd>
+                    </dl>
+                </section>
+            )}
         </div>
     );
 };

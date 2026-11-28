@@ -34,6 +34,8 @@ jobs:
         if: steps.gate.outputs.ok == 'true'
         env:
           VITE_ADMOB_BANNER_ID: ca-app-pub-6923300523417935/3412305311
+          VITE_BUILD_ENV: internal
+          VERSION_NAME: '1.0'
           KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
